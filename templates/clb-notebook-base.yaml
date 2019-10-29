@@ -1,0 +1,99 @@
+---
+kind: Template
+apiVersion: template.openshift.io/v1
+metadata:
+  name: clb-nb-base
+  annotations:
+    openshift.io/display-name: Collaboratory notebook base builder
+    description: Template for creating customised notebook images.
+    iconClass: icon-python
+    tags: python,jupyter,jupyterhub
+parameters:
+- name: BUILDER_IMAGE_NAME
+  value: clb-jupyter-nb-builder
+  required: true
+- name: BUILDER_IMAGE_REPOSITORY_URL
+  value: https://gitlab.humanbrainproject.org/villemai/clb-jupyter-images.git
+  required: true
+- name: BUILDER_IMAGE_CONTEXT_DIR
+  value: builder
+  required: false
+- name: BUILDER_IMAGE_GIT_REFERENCE
+  value: master
+  required: true
+- name: BASE_IMAGE_NAME
+  value: clb-jupyter-nb-base
+  required: true
+- name: BASE_IMAGE_REPOSITORY_URL
+  value: https://gitlab.humanbrainproject.org/villemai/clb-jupyter-images.git
+  required: true
+- name: BASE_IMAGE_CONTEXT_DIR
+  value: base
+  required: false
+- name: BASE_IMAGE_GIT_REFERENCE
+  value: master
+  required: true
+objects:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: "${BASE_IMAGE_NAME}"
+    labels:
+      build: "${BASE_IMAGE_NAME}"
+  spec:
+    lookupPolicy:
+      local: true
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: "${BUILDER_IMAGE_NAME}"
+    labels:
+      build: "${BUILDER_IMAGE_NAME}"
+  spec:
+    lookupPolicy:
+      local: true
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: "${BUILDER_IMAGE_NAME}"
+    labels:
+      build: "${BUILDER_IMAGE_NAME}"
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      git:
+        uri: "${BUILDER_IMAGE_REPOSITORY_URL}"
+        ref: "${BUILDER_IMAGE_GIT_REFERENCE}"
+      contextDir: "${BUILDER_IMAGE_CONTEXT_DIR}"
+    strategy:
+      dockerStrategy: {}
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${BUILDER_IMAGE_NAME}:latest"
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
+    name: "${BASE_IMAGE_NAME}"
+    labels:
+      build: "${BASE_IMAGE_NAME}"
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      git:
+        uri: "${BASE_IMAGE_REPOSITORY_URL}"
+        ref: "${BASE_IMAGE_GIT_REFERENCE}"
+      contextDir: "${BASE_IMAGE_CONTEXT_DIR}"
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: "${BUILDER_IMAGE_NAME}:latest"
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${BASE_IMAGE_NAME}:latest"

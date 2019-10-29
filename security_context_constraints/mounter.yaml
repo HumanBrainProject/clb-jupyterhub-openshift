@@ -1,0 +1,16 @@
+kind: SecurityContextConstraints
+apiVersion: v1
+metadata:
+  name: scc-mounter
+allowPrivilegedContainer: true
+allowedCapabilities:
+  - SYS_ADMIN
+allowPrivilegeEscalation: true
+runAsUser:
+  type: MustRunAsRange
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+users:
+- jupyterhub-hub
