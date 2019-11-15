@@ -1,6 +1,6 @@
 import os
 
-c.JupyterHub.authenticator_class = 'oauthenticator.generic.GenericOAuthenticator'
+c.JupyterHub.authenticator_class = 'clb_authenticator.ClbAuthenticator'
 c.Authenticator.enable_auth_state = True
 c.Authenticator.scope = ['email', 'roles', 'team', 'offline_access']
 
@@ -60,3 +60,12 @@ c.KuJuDriveSpawner.volume_mounts = [{
 }]
 
 c.JupyterHub.spawner_class = 'kujudrivespawner.KuJuDriveSpawner'
+
+# Kill user pods after 12 hours of inactivity.
+c.JupyterHub.services = [
+    {
+        'name': 'cull-idle',
+        'admin': True,
+        'command': ['cull-idle-servers', '--timeout=86400'],
+    }
+]

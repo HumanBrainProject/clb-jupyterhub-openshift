@@ -13,7 +13,7 @@ parameters:
   value: clb-jupyter-nb-builder
   required: true
 - name: BUILDER_IMAGE_REPOSITORY_URL
-  value: https://gitlab.humanbrainproject.org/villemai/clb-jupyter-images.git
+  value: https://github.com/HumanBrainProject/clb-jupyter-images.git
   required: true
 - name: BUILDER_IMAGE_CONTEXT_DIR
   value: builder
@@ -21,11 +21,23 @@ parameters:
 - name: BUILDER_IMAGE_GIT_REFERENCE
   value: master
   required: true
+- name: BUILDER_NEURO_IMAGE_NAME
+  value: clb-jupyter-nb-neuro-builder
+  required: true
+- name: BUILDER_NEURO_IMAGE_REPOSITORY_URL
+  value: https://github.com/HumanBrainProject/clb-jupyter-images.git
+  required: true
+- name: BUILDER_NEURO_IMAGE_CONTEXT_DIR
+  value: neuroscience
+  required: false
+- name: BUILDER_NEURO_IMAGE_GIT_REFERENCE
+  value: master
+  required: true
 - name: BASE_IMAGE_NAME
   value: clb-jupyter-nb-base
   required: true
 - name: BASE_IMAGE_REPOSITORY_URL
-  value: https://gitlab.humanbrainproject.org/villemai/clb-jupyter-images.git
+  value: https://github.com/HumanBrainProject/clb-jupyter-images.git
   required: true
 - name: BASE_IMAGE_CONTEXT_DIR
   value: base
@@ -40,6 +52,15 @@ objects:
     name: "${BASE_IMAGE_NAME}"
     labels:
       build: "${BASE_IMAGE_NAME}"
+  spec:
+    lookupPolicy:
+      local: true
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: "${BUILDER_NEURO_IMAGE_NAME}"
+    labels:
+      build: "${BUILDER_NEURO_IMAGE_NAME}"
   spec:
     lookupPolicy:
       local: true
@@ -76,6 +97,30 @@ objects:
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
+    name: "${BUILDER_NEURO_IMAGE_NAME}"
+    labels:
+      build: "${BUILDER_NEURO_IMAGE_NAME}"
+  spec:
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    source:
+      git:
+        uri: "${BUILDER_NEURO_IMAGE_REPOSITORY_URL}"
+        ref: "${BUILDER_NEURO_IMAGE_GIT_REFERENCE}"
+      contextDir: "${BUILDER_NEURO_IMAGE_CONTEXT_DIR}"
+    strategy:
+      dockerStrategy:
+        from:
+          kind: "ImageStreamTag"
+          name: "${BUILDER_IMAGE_NAME}:latest"
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${BUILDER_NEURO_IMAGE_NAME}:latest"
+- kind: BuildConfig
+  apiVersion: build.openshift.io/v1
+  metadata:
     name: "${BASE_IMAGE_NAME}"
     labels:
       build: "${BASE_IMAGE_NAME}"
@@ -92,7 +137,7 @@ objects:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: "${BUILDER_IMAGE_NAME}:latest"
+          name: "${BUILDER_NEURO_IMAGE_NAME}:latest"
     output:
       to:
         kind: ImageStreamTag

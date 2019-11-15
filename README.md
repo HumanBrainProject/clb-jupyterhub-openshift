@@ -38,7 +38,9 @@ oc apply -f image-streams/jupyterhub.json
 oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-builder.json \
     --param JUPYTERHUB_NAME=hbp-jupyterhub --param GIT_REPOSITORY_URL=https://github.com/HumanBrainProject/clb-s2i-jupyterhub
 # prod and dev
-oc apply -f https://raw.githubusercontent.com/HumanBrainProject/clb-jupyterhub-openshift/master/templates/jupyterhub-deployer.json
+oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-deployer.json
+oc process templates/jupyterhub-deployer --param JUPYTERHUB_IMAGE=hbp-jupyterhub:latest     --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" --param JUPYTERHUB_ENVVARS="$(cat jupyterhub_envvars_dev.sh)" --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:latest --param NOTEBOOK_MEMORY=2Gi  |oc apply -f-
+
 ```
 
 Setup the templates for the notebooks and sidecar
