@@ -2,11 +2,11 @@ import os
 
 c.JupyterHub.authenticator_class = 'clb_authenticator.ClbAuthenticator'
 c.Authenticator.enable_auth_state = True
-c.Authenticator.scope = ['email', 'roles', 'team', 'offline_access']
+c.Authenticator.scope = ['email', 'roles', 'collab.drive', 'team', 'offline_access']
 
 del c.KubeSpawner.cmd
 
-c.KuJuDriveSpawner.http_timeout = 120
+c.KuJuDriveSpawner.http_timeout = 240
 c.KuJuDriveSpawner.drive_url = os.environ.get('DRIVE_URL')
 c.KuJuDriveSpawner.seadrive_sidecar_image = os.environ.get('SEADRIVE_SIDECAR_IMAGE')
 
@@ -67,5 +67,14 @@ c.JupyterHub.services = [
         'name': 'cull-idle',
         'admin': True,
         'command': ['cull-idle-servers', '--timeout=86400'],
+    },
+    {
+        'name': 'access-token-service',
+        'admin': True,
+        'url': 'http://localhost:8528',
+        'command': ['access-token-service'],
     }
 ]
+
+c.KuJuDriveSpawner.debug = True
+c.JupyterHub.log_level = 'DEBUG'
