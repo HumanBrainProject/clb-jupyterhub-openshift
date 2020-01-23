@@ -30,26 +30,47 @@ oc new project jupyterhub-env
 
 Setup the templates for Jupyterhub from Jupyterhub on Openshift. These provide the templates
 
+DEV
 ```
-JOO_VERSION=3.2.2
-DRIVE_URL=$(/bin/false) # DRIVE_URL
-# dev projects only, builds should be re-used in production.
+export CLB_ENV='prod'
+export CLB_ENV_POSTFIX=''
+```
+
+PROD
+```
+export CLB_ENV='dev'
+export CLB_ENV_POSTFIX='-dev'
+```
+
+```
+export JOO_VERSION="3.4.0"
+export CLB_HUB_VERSION=v0.1.0-openshift
+export CLB_NB_VERSION=v0.2.0-openshift
+
+export DRIVE_URL="https://drive${CLB_ENV_POSTFIX}.humanbrainproject.eu"
 oc apply -f image-streams/jupyterhub.json
-oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-builder.json \
-    --param JUPYTERHUB_NAME=hbp-jupyterhub --param GIT_REPOSITORY_URL=https://github.com/HumanBrainProject/clb-s2i-jupyterhub
-# prod and dev
+
+oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-builder.json
+
+oc process templates/jupyterhub-builder \
+    --param JUPYTERHUB_NAME=hbp-jupyterhub \
+    --param GIT_REPOSITORY_URL=https://github.com/HumanBrainProject/clb-s2i-jupyterhub \
+    --param GIT_REFERENCE=${CLB_HUB_VERSION} \
+    | oc apply -f-
+
 oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-deployer.json
-oc process templates/jupyterhub-deployer --param JUPYTERHUB_IMAGE=hbp-jupyterhub:latest     --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" --param JUPYTERHUB_ENVVARS="$(cat jupyterhub_envvars_dev.sh)" --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:latest --param NOTEBOOK_MEMORY=2Gi  |oc apply -f-
+oc process templates/jupyterhub-deployer \
+    --param JUPYTERHUB_IMAGE=hbp-jupyterhub:latest \
+    --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" \
+    --param JUPYTERHUB_ENVVARS="$(cat jupyterhub_envvars_${CLB_ENV}.sh)" \
+    --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:${CLB_NB_VERSION} \
+    --param NOTEBOOK_MEMORY=2Gi \
+    | oc apply -f-
 
+oc process -f build-config/hbp-jupyterhub.yaml
 ```
 
-Setup the templates for the notebooks and sidecar
-
-```
-# dev projects only, builds should be re-used in production.
-
-```
-
+Would be nice, but needs modifications of the jupyterhub-deployer template to mount the secrets. Set in the env file for now.
 ```
 oc create secret generic jupyterhub --from-literal=jupyterhub_crypt_key=$(openssl rand -hex 32  | tr -d '\n')
 oc create secret generic oauth --from-literal=client_secret=<OAuth client secret>
@@ -57,13 +78,6 @@ oc create secret generic oauth --from-literal=client_secret=<OAuth client secret
 
 ```
 oc create -f security_context_constraints/mounter.yaml
-```
-
-```
-oc new-app --template jupyterhub-deployer \
-    --param-file=config/oauth.env -f templates/jupyterhub-deployer.json --param JUPYTERHUB_IMAGE=hbp-jupyterhub:latest \
-    --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" --param SEADRIVE_SIDECAR_IMAGE=docker.io/villemai/seadrive-sidecar:v0.0.8 \
-    --param DRIVE_URL=$DRIVE_URL --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:latest --param NOTEBOOK_MEMORY=2Gi
 oc adm policy add-scc-to-user scc-mounter system:serviceaccount:$APPNAME:jupyterhub-hub
 ```
 
@@ -71,3 +85,10 @@ oc adm policy add-scc-to-user scc-mounter system:serviceaccount:$APPNAME:jupyter
 
 - [ ] Publish seahub patches
 - [ ] Describe KeyCloak setup
+
+## Tricks
+
+Add to envvars to run db upgrade:
+```
+jupyterhub upgrade-db -f /opt/app-root/etc/jupyterhub_config.py
+```
