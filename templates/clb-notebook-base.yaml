@@ -19,7 +19,7 @@ parameters:
   value: builder
   required: false
 - name: BUILDER_IMAGE_GIT_REFERENCE
-  value: master
+  value: v0.3.0-openshift
   required: true
 - name: BUILDER_NEURO_IMAGE_NAME
   value: clb-jupyter-nb-neuro-builder
@@ -31,7 +31,7 @@ parameters:
   value: neuroscience
   required: false
 - name: BUILDER_NEURO_IMAGE_GIT_REFERENCE
-  value: master
+  value: v0.3.0-openshift
   required: true
 - name: BASE_IMAGE_NAME
   value: clb-jupyter-nb-base
@@ -43,7 +43,7 @@ parameters:
   value: base
   required: false
 - name: BASE_IMAGE_GIT_REFERENCE
-  value: master
+  value: v0.3.0-openshift
   required: true
 objects:
 - kind: ImageStream
@@ -93,7 +93,7 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: "${BUILDER_IMAGE_NAME}:latest"
+        name: "${BUILDER_IMAGE_NAME}:${BUILDER_IMAGE_GIT_REFERENCE}"
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -113,11 +113,11 @@ objects:
       dockerStrategy:
         from:
           kind: "ImageStreamTag"
-          name: "${BUILDER_IMAGE_NAME}:latest"
+          name: "${BUILDER_IMAGE_NAME}:${BUILDER_IMAGE_GIT_REFERENCE}"
     output:
       to:
         kind: ImageStreamTag
-        name: "${BUILDER_NEURO_IMAGE_NAME}:latest"
+        name: "${BUILDER_NEURO_IMAGE_NAME}:${BUILDER_NEURO_IMAGE_GIT_REFERENCE}"
 - kind: BuildConfig
   apiVersion: build.openshift.io/v1
   metadata:
@@ -137,8 +137,8 @@ objects:
       sourceStrategy:
         from:
           kind: ImageStreamTag
-          name: "${BUILDER_NEURO_IMAGE_NAME}:latest"
+          name: "${BUILDER_NEURO_IMAGE_NAME}:${BUILDER_NEURO_IMAGE_GIT_REFERENCE}"
     output:
       to:
         kind: ImageStreamTag
-        name: "${BASE_IMAGE_NAME}:latest"
+        name: "${BASE_IMAGE_NAME}:${BASE_IMAGE_GIT_REFERENCE}"
