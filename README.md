@@ -44,7 +44,7 @@ export CLB_ENV_POSTFIX='-dev'
 
 ```
 export JOO_VERSION="3.4.0"
-export CLB_HUB_VERSION=v0.1.0-openshift
+export CLB_HUB_VERSION=v0.2.1-openshift
 export CLB_NB_VERSION=v0.2.0-openshift
 
 export DRIVE_URL="https://drive${CLB_ENV_POSTFIX}.humanbrainproject.eu"
@@ -60,7 +60,7 @@ oc process templates/jupyterhub-builder \
 
 oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-deployer.json
 oc process templates/jupyterhub-deployer \
-    --param JUPYTERHUB_IMAGE=hbp-jupyterhub:latest \
+    --param JUPYTERHUB_IMAGE=hbp-jupyterhub:${CLB_HUB_VERSION} \
     --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" \
     --param JUPYTERHUB_ENVVARS="$(cat jupyterhub_envvars_${CLB_ENV}.sh)" \
     --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:${CLB_NB_VERSION} \
