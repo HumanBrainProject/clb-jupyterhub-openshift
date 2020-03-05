@@ -2,7 +2,7 @@ import os
 
 c.JupyterHub.authenticator_class = 'clb_authenticator.ClbAuthenticator'
 c.Authenticator.enable_auth_state = True
-c.Authenticator.scope = ['email', 'roles', 'collab.drive', 'team', 'offline_access']
+c.Authenticator.scope = ['email', 'roles', 'collab.drive', 'team', 'offline_access', 'profile', 'group']
 
 del c.KubeSpawner.cmd
 
@@ -71,6 +71,7 @@ c.JupyterHub.services = [
     {
         'name': 'access-token-service',
         'admin': True,
+        'user': 'default',
         'url': 'http://localhost:8528',
         'command': ['access-token-service'],
     }

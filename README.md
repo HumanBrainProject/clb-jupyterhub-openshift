@@ -30,13 +30,13 @@ oc new project jupyterhub-env
 
 Setup the templates for Jupyterhub from Jupyterhub on Openshift. These provide the templates
 
-DEV
+PROD
 ```
 export CLB_ENV='prod'
 export CLB_ENV_POSTFIX=''
 ```
 
-PROD
+DEV
 ```
 export CLB_ENV='dev'
 export CLB_ENV_POSTFIX='-dev'
@@ -45,9 +45,8 @@ export CLB_ENV_POSTFIX='-dev'
 ```
 export JOO_VERSION="3.4.0"
 export CLB_HUB_VERSION=v0.2.1-openshift
-export CLB_NB_VERSION=v0.2.0-openshift
+export CLB_NB_VERSION=v0.3.5-openshift
 
-export DRIVE_URL="https://drive${CLB_ENV_POSTFIX}.humanbrainproject.eu"
 oc apply -f image-streams/jupyterhub.json
 
 oc apply -f https://raw.githubusercontent.com/jupyter-on-openshift/jupyterhub-quickstart/$JOO_VERSION/templates/jupyterhub-builder.json
@@ -67,8 +66,9 @@ oc process templates/jupyterhub-deployer \
     --param NOTEBOOK_MEMORY=2Gi \
     | oc apply -f-
 
-oc process -f build-config/hbp-jupyterhub.yaml
+oc process -f templates/clb-notebook-base.yaml  |oc apply -f-
 ```
+
 
 Would be nice, but needs modifications of the jupyterhub-deployer template to mount the secrets. Set in the env file for now.
 ```
@@ -78,7 +78,25 @@ oc create secret generic oauth --from-literal=client_secret=<OAuth client secret
 
 ```
 oc create -f security_context_constraints/mounter.yaml
+APPNAME=???
 oc adm policy add-scc-to-user scc-mounter system:serviceaccount:$APPNAME:jupyterhub-hub
+```
+
+## Updating the clb notebook image
+
+```
+export CLB_NB_VERSION=v0.3.5-openshift
+oc process templates/clb-nb-base --param BUILDER_IMAGE_GIT_REFERENCE=${CLB_NB_VERSION} BUILDER_NEURO_IMAGE_GIT_REFERENCE=${CLB_NB_VERSION} --param BASE_IMAGE_GIT_REFERENCE=${CLB_NB_VERSION} |oc apply -f-
+oc start-build clb-jupyter-nb-builder
+
+# @TODO is there a way to only change one parameter?
+oc process templates/jupyterhub-deployer \
+    --param JUPYTERHUB_IMAGE=hbp-jupyterhub:${CLB_HUB_VERSION} \
+    --param JUPYTERHUB_CONFIG="`cat jupyterhub_config.py`" \
+    --param JUPYTERHUB_ENVVARS="$(cat jupyterhub_envvars_${CLB_ENV}.sh)" \
+    --param NOTEBOOK_IMAGE=clb-jupyter-nb-base:${CLB_NB_VERSION} \
+    --param NOTEBOOK_MEMORY=2Gi \
+    | oc apply -f-
 ```
 
 ## TODO
